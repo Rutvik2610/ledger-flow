@@ -98,9 +98,9 @@ api.MapGet("/accounts/{id:guid}/balance", async (Guid id, ClaimsPrincipal user, 
 {
     var owner = Owner(user); var result = await db.Accounts.AsNoTracking().Where(x => x.Id == id && x.Owner == owner).Select(x => new { x.Id, x.Balance, x.Currency }).SingleOrDefaultAsync(ct); return result == null ? Results.NotFound() : Results.Ok(result);
 });
-api.MapPost("/transfers", async (TransferRequest request, HttpContext http, Transfers service, CancellationToken ct) =>
+api.MapPost("/transfers", async (TransferRequest request, [Microsoft.AspNetCore.Mvc.FromHeader(Name = "Idempotency-Key")] string idempotencyKey, HttpContext http, Transfers service, CancellationToken ct) =>
 {
-    var key = http.Request.Headers["Idempotency-Key"].ToString();
+    var key = idempotencyKey;
     if (key.Length is < 1 or > 128 || key.Any(c => c < 33 || c > 126)) return Results.Problem(statusCode: 400, title: "Idempotency-Key must contain 1..128 printable non-space ASCII characters.");
     var result = await service.Post(Owner(http.User), key, request, ct);
     return Results.Content(result.Json, result.Status >= 400 ? "application/problem+json" : "application/json", statusCode: result.Status);

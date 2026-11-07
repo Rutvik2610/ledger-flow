@@ -40,6 +40,19 @@ public class SecurityTests
     }
 
     [Fact]
+    public async Task OpenApi_exposes_required_transfer_idempotency_header()
+    {
+        await using var app = new Factory("Development");
+        var client = app.CreateClient();
+        using var document = System.Text.Json.JsonDocument.Parse(await client.GetStringAsync("/swagger/v1/swagger.json"));
+        var parameters = document.RootElement.GetProperty("paths").GetProperty("/api/transfers").GetProperty("post").GetProperty("parameters");
+        var header = Assert.Single(parameters.EnumerateArray(), p => p.GetProperty("name").GetString() == "Idempotency-Key");
+        Assert.Equal("header", header.GetProperty("in").GetString());
+        Assert.True(header.GetProperty("required").GetBoolean());
+        Assert.Equal("string", header.GetProperty("schema").GetProperty("type").GetString());
+    }
+
+    [Fact]
     public async Task Invalid_requests_return_problem_details_without_database_access()
     {
         await using var app = new Factory("Development"); var client = app.CreateClient();
