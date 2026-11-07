@@ -16,7 +16,7 @@ assert counters is not None
 summary=(f"### Backend validation\n\n"
          f"- Tests passed: {counters.attrib['passed']}\n"
          f"- SQL Server integration/concurrency tests passed: {len(sql)}\n"
-         f"- Tests not executed: {counters.attrib['notExecuted']} (live Azure adapter requires credentials)\n"
+         f"- Tests not executed: {sum(r.attrib['outcome']=='NotExecuted' for r in results)} (live Azure adapter requires credentials)\n"
          f"- SQL tests were required; skipped SQL tests fail this job.\n")
 print(summary)
 if target:=os.getenv('GITHUB_STEP_SUMMARY'):
