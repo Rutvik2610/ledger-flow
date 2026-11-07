@@ -6,3 +6,7 @@
 TestResults/
 *.user
 *.log
+
+*.pfx
+*.pem
+*.key

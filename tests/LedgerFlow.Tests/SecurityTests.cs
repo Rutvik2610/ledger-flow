@@ -38,4 +38,20 @@ public class SecurityTests
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/accounts")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/swagger/v1/swagger.json")).StatusCode);
     }
+
+    [Fact]
+    public async Task Invalid_requests_return_problem_details_without_database_access()
+    {
+        await using var app = new Factory("Development"); var client = app.CreateClient();
+        var response = await client.PostAsync("/dev/token/alice", null);
+        using var json = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        client.DefaultRequestHeaders.Authorization = new("Bearer", json.RootElement.GetProperty("access_token").GetString());
+        var malformed = await client.PostAsync("/api/transfers", new StringContent("{", System.Text.Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
+        Assert.Equal("application/problem+json", malformed.Content.Headers.ContentType!.MediaType);
+        var unknown = await client.PostAsync("/api/accounts", new StringContent("{\"currency\":\"USD\",\"balance\":100}", System.Text.Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, unknown.StatusCode);
+        var missingKey = await client.PostAsync("/api/transfers", new StringContent("{\"from\":\"00000000-0000-0000-0000-000000000001\",\"to\":\"00000000-0000-0000-0000-000000000002\",\"amount\":1}", System.Text.Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, missingKey.StatusCode);
+    }
 }

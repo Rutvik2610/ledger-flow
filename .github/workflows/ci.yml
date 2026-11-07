@@ -7,13 +7,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
       - run: dotnet restore --locked-mode
       - run: dotnet build --no-restore --configuration Release
       - run: ./scripts/test.sh --configuration Release --logger 'trx;LogFileName=results.trx'
+      - run: python3 scripts/ci-results.py
       - run: docker compose up -d --build --wait api
       - run: |
           for attempt in $(seq 1 30); do
@@ -21,7 +22,8 @@ jobs:
             sleep 2
           done
           python3 scripts/smoke.py
-      - uses: actions/upload-artifact@v4
+          echo "- Docker Compose startup and synthetic HTTP transfer smoke check passed." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
           name: test-results

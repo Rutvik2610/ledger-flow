@@ -24,6 +24,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer
 builder.Services.AddSingleton<IEventTransport>(sp => config["Transport"] == "Azure" ? new AzureTransport(config) : new LocalTransport(sp.GetRequiredService<NotificationConsumer>()));
 builder.Services.AddHostedService<OutboxWorker>();
 builder.Services.AddHostedService<AzureConsumer>();
+builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow);
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer(); builder.Services.AddSwaggerGen(o =>
 {
@@ -52,8 +53,14 @@ if (!args.Contains("--migrate") && !developmentAuth &&
 app.UseExceptionHandler(error => error.Run(async http =>
 {
     var ex = http.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
-    var status = ex is Microsoft.Data.SqlClient.SqlException ? 503 : 500;
-    await Results.Problem(statusCode: status, title: status == 503 ? "Database temporarily unavailable; retry with the same idempotency key." : "Unexpected server error", extensions: new Dictionary<string, object?> { { "traceId", Activity.Current?.TraceId.ToString() ?? http.TraceIdentifier } }).ExecuteAsync(http);
+    var status = ex switch
+    {
+        BadHttpRequestException bad => bad.StatusCode,
+        Microsoft.Data.SqlClient.SqlException => 503,
+        DbUpdateException { InnerException: Microsoft.Data.SqlClient.SqlException } => 503,
+        _ => 500
+    };
+    await Results.Problem(statusCode: status, title: status == 503 ? "Database temporarily unavailable; retry with the same idempotency key." : status == 400 ? "Invalid request body" : "Unexpected server error", extensions: new Dictionary<string, object?> { { "traceId", Activity.Current?.TraceId.ToString() ?? http.TraceIdentifier } }).ExecuteAsync(http);
 }));
 app.Use(async (ctx, next) => { ctx.Response.Headers["X-Correlation-ID"] = ctx.TraceIdentifier; using (app.Logger.BeginScope(new Dictionary<string, object> { { "CorrelationId", ctx.TraceIdentifier } })) await next(); });
 app.UseStatusCodePages(async c => await Results.Problem(statusCode: c.HttpContext.Response.StatusCode).ExecuteAsync(c.HttpContext));

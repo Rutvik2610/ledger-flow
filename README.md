@@ -88,7 +88,7 @@ See [requests.http](requests.http). Obtain a development token and set it as a B
 
 Amounts are signed 64-bit **integer minor units**; transfer requests must be positive and at most 1,000,000,000,000. USD, INR and EUR are supported with exactly two decimal places: `2500` means 25.00. No floats, decimals in request amounts, rounding, FX conversion or cross-currency transfers are accepted. Account creation validates currency. Closed source or destination accounts reject transfers with 409; closure administration is intentionally absent from the public API.
 
-Errors use Problem Details (`application/problem+json`), with 400 for invalid input, 401/403 for authentication/claim failure, 404 for inaccessible accounts, 409 for business or key conflicts, 429 for rate limiting, and 503 for SQL failures. Unknown server errors return a generic 500, not exception details. No request bodies or access tokens are logged.
+Unknown JSON properties are rejected rather than silently accepted. Errors use Problem Details (`application/problem+json`), with 400 for invalid input, 401/403 for authentication/claim failure, 404 for inaccessible accounts, 409 for business or key conflicts, 429 for rate limiting, and 503 for SQL failures. Unknown server errors return a generic 500, not exception details. No request bodies or access tokens are logged.
 
 History accepts `page` (1..100000), `size` (1..100), inclusive `from`, exclusive `to` (ISO UTC timestamps), and `kind` (`Transfer` or `DevelopmentFunding`). Ordering is `CreatedAt DESC, Id DESC`, including timestamp ties. Offset pages are deterministic for a fixed dataset; for a long export freeze an upper `to` bound. Concurrent inserts can shift offset pages; snapshot exports/keyset pagination are future work.
 
