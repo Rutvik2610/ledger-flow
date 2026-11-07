@@ -1,0 +1,41 @@
+@base = http://localhost:8080
+@token = REPLACE_WITH_DEVELOPMENT_TOKEN
+@source = REPLACE_WITH_ACCOUNT_GUID
+@destination = REPLACE_WITH_ACCOUNT_GUID
+
+### Development only
+POST {{base}}/dev/token/alice
+
+### Create source and destination (repeat)
+POST {{base}}/api/accounts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"currency":"USD"}
+
+### Development-only initial funding, represented in the ledger
+POST {{base}}/api/dev/accounts/{{source}}/fund
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"amount":10000}
+
+### Repeating this exact request replays the same result
+POST {{base}}/api/transfers
+Authorization: Bearer {{token}}
+Idempotency-Key: demo-transfer-001
+Content-Type: application/json
+
+{"from":"{{source}}","to":"{{destination}}","amount":2500}
+
+### History
+GET {{base}}/api/accounts/{{source}}/history?page=1&size=20&kind=Transfer
+Authorization: Bearer {{token}}
+
+### Balance (always SQL)
+GET {{base}}/api/accounts/{{source}}/balance
+Authorization: Bearer {{token}}
+
+### Async notification receipts
+GET {{base}}/api/notifications
+Authorization: Bearer {{token}}

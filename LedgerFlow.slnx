@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LedgerFlow/LedgerFlow.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LedgerFlow.Tests/LedgerFlow.Tests.csproj" />
+  </Folder>
+</Solution>
